@@ -2,7 +2,7 @@
 *Context-aware document processing and analysis toolkit*
 
 ## Overview
-Contxtr is an evolution of my previous project [RepoScribe](https://github.com/yourusername/RepoScribe), rebuilt from the ground up with improved architecture and expanded capabilities. While RepoScribe began as a simple tool to flatten codebases into markdown files, Contxtr aims to be a comprehensive toolkit for processing, analyzing, and relating various types of content using AI.
+Contxtr is an evolution of my previous project [RepoScribe](https://github.com/willmo103/RepoScribe), rebuilt from the ground up with improved architecture and expanded capabilities. While RepoScribe began as a simple tool to flatten codebases into markdown files, Contxtr aims to be a comprehensive toolkit for processing, analyzing, and relating various types of content using AI.
 
 ## Background & Journey
 As a junior developer, I created RepoScribe to solve a specific problem: documenting codebases in a readable format. While successful in its core functionality (and still used in production!), the project taught me valuable lessons about software architecture and design:
