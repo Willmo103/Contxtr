@@ -4,12 +4,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Contxtr.Core.Models;
 
 namespace Contxtr.Core.Interfaces
 {
     public interface IDocumentProcessor
     {
-        Task ProcessAsync(string filePath, CancellationToken cancellationToken = default);
-        Task<IEnumerable> ProcessDirectoryAsync(string directoryPath, CancellationToken cancellationToken = default);
+        Task<Document> ProcessAsync(string filePath, CancellationToken cancellationToken = default);
+        Task<IEnumerable<Document>> ProcessDirectoryAsync(string directoryPath, CancellationToken cancellationToken = default);
     }
 }
