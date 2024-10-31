@@ -8,6 +8,7 @@ using Contxtr.Core.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Contxtr.Infrastructure.Services;
+using Contxtr.Core.Configuration;
 
 
 namespace Contxtr.Infrastructure.Processing
@@ -15,19 +16,17 @@ namespace Contxtr.Infrastructure.Processing
     public class DocumentProcessor : IDocumentProcessor
     {
         private readonly ILogger<DocumentProcessor> _logger;
-        private readonly IReadOnlyDictionary<string, string> _languageMap;
+        private readonly ContxtrConfiguration _configuration;
         private readonly HashingService _hashingService;
 
         public DocumentProcessor(
             ILogger<DocumentProcessor> logger,
-            IConfiguration configuration,
+            IContxtrConfigurationProvider configProvider,
             HashingService hashingService)
         {
             _logger = logger;
             _hashingService = hashingService;
-            var languageMap = new Dictionary<string, string>();
-            configuration.GetSection("LanguageMap").Bind(languageMap);
-            _languageMap = languageMap;
+            _configuration = configProvider.LoadConfigurationAsync().GetAwaiter().GetResult();
         }
 
         public async Task<Document> ProcessAsync(string filePath, CancellationToken cancellationToken = default)
@@ -36,13 +35,14 @@ namespace Contxtr.Infrastructure.Processing
 
             var fileInfo = new FileInfo(filePath);
             var content = await File.ReadAllTextAsync(filePath, cancellationToken);
+            var extension = Path.GetExtension(filePath).ToLower();
 
             return new Document
             {
                 Metadata = new DocumentMetadata
                 {
                     Path = filePath,
-                    Language = GetLanguage(filePath),
+                    Language = _configuration.LanguageMap.Extensions.GetValueOrDefault(extension, "plaintext"),
                     Owner = GetFileOwner(fileInfo),
                     SizeInBytes = fileInfo.Length
                 },
@@ -68,30 +68,68 @@ namespace Contxtr.Infrastructure.Processing
             _logger.LogInformation("Processing directory: {DirectoryPath}", directoryPath);
 
             var documents = new List<Document>();
-            var files = Directory.EnumerateFiles(directoryPath, "*.*", SearchOption.AllDirectories)
-                .Where(file => _languageMap.ContainsKey(Path.GetExtension(file).ToLower()));
+            var allowedExtensions = _configuration.LanguageMap.Extensions.Keys;
 
-            foreach (var file in files)
+            var files = Directory.EnumerateFiles(directoryPath, "*.*",
+                _configuration.Processing.FollowSymlinks
+                    ? SearchOption.AllDirectories
+                    : SearchOption.TopDirectoryOnly)
+                .Where(file => allowedExtensions.Contains(Path.GetExtension(file).ToLower()))
+                .Where(file => !ShouldIgnore(file));
+
+            if (_configuration.Processing.ParallelProcessing)
             {
-                try
+                var options = new ParallelOptions
                 {
-                    var document = await ProcessAsync(file, cancellationToken);
-                    documents.Add(document);
-                }
-                catch (Exception ex)
+                    MaxDegreeOfParallelism = _configuration.Processing.MaxDegreeOfParallelism,
+                    CancellationToken = cancellationToken
+                };
+
+                await Parallel.ForEachAsync(files, options, async (file, ct) =>
                 {
-                    _logger.LogError(ex, "Error processing file: {FilePath}", file);
+                    try
+                    {
+                        var document = await ProcessAsync(file, ct);
+                        lock (documents)
+                        {
+                            documents.Add(document);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error processing file: {FilePath}", file);
+                    }
+                });
+            }
+            else
+            {
+                foreach (var file in files)
+                {
+                    try
+                    {
+                        var document = await ProcessAsync(file, cancellationToken);
+                        documents.Add(document);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error processing file: {FilePath}", file);
+                    }
                 }
             }
 
             return documents;
         }
 
-
-        private string GetLanguage(string filePath)
+        private bool ShouldIgnore(string path)
         {
-            var extension = Path.GetExtension(filePath).ToLower();
-            return _languageMap.TryGetValue(extension, out var language) ? language : "plaintext";
+            foreach (var pattern in _configuration.Ignore.Patterns)
+            {
+                if (path.Contains(pattern.Pattern, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private string GetFileOwner(FileInfo fileInfo)

@@ -14,3 +14,4 @@ namespace Contxtr.Core.Interfaces
         Task<IEnumerable<Document>> ProcessDirectoryAsync(string directoryPath, CancellationToken cancellationToken = default);
     }
 }
+

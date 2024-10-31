@@ -53,7 +53,7 @@ namespace Contxtr.Infrastructure.Output
             _logger.LogInformation("Document written successfully");
         }
 
-        public async Task WriteAsync(IEnumerable<Document> documents, string outputPath, CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<Document>> WriteAsync(IEnumerable<Document> documents, string outputPath, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Writing multiple documents to: {OutputPath}", outputPath);
 
@@ -81,6 +81,8 @@ namespace Contxtr.Infrastructure.Output
 
             await File.WriteAllTextAsync(outputPath, markdown.ToString(), cancellationToken);
             _logger.LogInformation("All documents written successfully");
+
+            return documents;
         }
     }
 }
