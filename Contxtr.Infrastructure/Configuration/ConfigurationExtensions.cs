@@ -4,34 +4,32 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Contxtr.Core.Configuration;
+using Contxtr.Core.Interfaces;
+using Contxtr.Infrastructure.Persistence;
+using Contxtr.Infrastructure.Processing;
+using Contxtr.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Contxtr.Infrastructure.Configuration
 {
-    public static class ConfigurationExtensions
+    public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddContxtrConfiguration(
+        public static IServiceCollection AddContxtrInfrastructure(
             this IServiceCollection services,
             IConfiguration configuration)
         {
-            // Determine which provider to use based on configuration
-            var provider = configuration.GetValue<string>("Contxtr:ConfigurationProvider")?.ToLower() ?? "json";
+            // Load configuration once at startup
+            var configProvider = new JsonConfigurationProvider(
+                services.BuildServiceProvider().GetRequiredService<ILogger<JsonConfigurationProvider>>(),
+                configuration);
+            var contxtrConfig = configProvider.LoadConfigurationAsync().GetAwaiter().GetResult();
 
-            services.AddSingleton<IContxtrConfigurationProvider>(sp =>
-            {
-                var logger = sp.GetRequiredService<ILogger<BaseConfigurationProvider>>();
-
-                return provider switch
-                {
-                    "sql" => new SqlConfigurationProvider(
-                        (ILogger<SqlConfigurationProvider>)logger,
-                        configuration),
-                    "json" or _ => new JsonConfigurationProvider(
-                        (ILogger<JsonConfigurationProvider>)logger,
-                        configuration)
-                };
-            });
+            services.AddSingleton(contxtrConfig);
+            services.AddSingleton<HashingService>();
+            services.AddScoped<IDocumentProcessor, DocumentProcessor>();
+            services.AddScoped<IDocumentRepository, FileSystemDocumentRepository>();
 
             return services;
         }

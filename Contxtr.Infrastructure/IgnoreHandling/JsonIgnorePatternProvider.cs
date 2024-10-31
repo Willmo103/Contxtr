@@ -5,11 +5,11 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Contxtr.Core.Interfaces;
-using Contxtr.Core.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Data.SqlClient;
 
-namespace Contxtr.Infrastructure.IgnorePatterns
+namespace Contxtr.Infrastructure.IgnoreHandling
 {
     public class JsonIgnorePatternProvider : IIgnorePatternProvider
     {
@@ -25,18 +25,18 @@ namespace Contxtr.Infrastructure.IgnorePatterns
             _logger = logger;
         }
 
-        public async Task<IgnorePatterns> LoadPatternsAsync(
+        public async Task<Core.Models.IgnorePatterns> LoadPatternsAsync(
             CancellationToken cancellationToken = default)
         {
             if (!File.Exists(_configPath))
             {
                 _logger.LogWarning("No ignore patterns file found at: {Path}", _configPath);
-                return new IgnorePatterns { Source = "json" };
+                return new Core.Models.IgnorePatterns { Source = "json" };
             }
-             
+
             var json = await File.ReadAllTextAsync(_configPath, cancellationToken);
-            var patterns = JsonSerializer.Deserialize<IgnorePatterns>(json)
-                ?? new IgnorePatterns { Source = "json" };
+            var patterns = JsonSerializer.Deserialize<Core.Models.IgnorePatterns>(json)
+                ?? new Core.Models.IgnorePatterns { Source = "json" };
             return patterns;
         }
     }
@@ -55,15 +55,13 @@ namespace Contxtr.Infrastructure.IgnorePatterns
             _logger = logger;
         }
 
-        public async Task<IgnorePatterns> LoadPatternsAsync(
+        public async Task<Core.Models.IgnorePatterns> LoadPatternsAsync(
             CancellationToken cancellationToken = default)
         {
-            // Implementation for loading from SQL
-            // This is just a skeleton - implement based on your DB schema
             using var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync(cancellationToken);
 
-            var patterns = new IgnorePatterns { Source = "sql" };
+            var patterns = new Core.Models.IgnorePatterns { Source = "sql" };
 
             using var command = new SqlCommand(
                 "SELECT Pattern, Description, IsRegex, Category FROM IgnorePatterns",
@@ -72,7 +70,7 @@ namespace Contxtr.Infrastructure.IgnorePatterns
             using var reader = await command.ExecuteReaderAsync(cancellationToken);
             while (await reader.ReadAsync(cancellationToken))
             {
-                patterns.Patterns.Add(new IgnorePattern
+                patterns.Patterns.Add(new Core.Models.IgnorePattern
                 {
                     Pattern = reader.GetString(0),
                     Description = reader.GetString(1),

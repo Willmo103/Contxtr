@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -32,13 +33,13 @@ namespace Contxtr.Infrastructure.Configuration
             using var connection = new SqlConnection(_connectionString);
             await connection.OpenAsync(cancellationToken);
 
-            // Example using Dapper
-            config.LanguageMap.Extensions = (await connection.QueryAsync<KeyValuePair<string, string>>(
-                "SELECT Extension, Language FROM LanguageMap"))
-                .ToDictionary(x => x.Key, x => x.Value);
+            //// Example using Dapper
+            //config.LanguageMap.Extensions = (await connection.QueryAsync<KeyValuePair<string, string>>(
+            //    "SELECT Extension, Language FROM LanguageMap"))
+            //    .ToDictionary(x => x.Key, x => x.Value);
 
-            config.Ignore.Patterns = (await connection.QueryAsync<IgnorePattern>(
-                "SELECT Pattern, Description FROM IgnorePatterns")).ToList();
+            //config.Ignore.Patterns = (await connection.QueryAsync<IgnorePattern>(
+            //"SELECT Pattern, Description FROM IgnorePatterns")).ToList();
 
             // Load other configuration sections...
 
