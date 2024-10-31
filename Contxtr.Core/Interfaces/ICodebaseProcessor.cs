@@ -11,7 +11,6 @@ namespace Contxtr.Core.Interfaces
     {
         Task<CodebaseStructure> ProcessCodebaseAsync(
             string rootPath,
-            IgnorePatterns ignorePatterns,
             CancellationToken cancellationToken = default);
     }
 }
