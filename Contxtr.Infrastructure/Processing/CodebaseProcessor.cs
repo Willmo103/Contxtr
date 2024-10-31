@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+﻿using System.Text.RegularExpressions;
 using Contxtr.Core.Configuration;
 using Contxtr.Core.Interfaces;
 using Contxtr.Core.Models;
@@ -17,6 +12,7 @@ namespace Contxtr.Infrastructure.Processing
         private readonly IDocumentProcessor _documentProcessor;
         private readonly ILogger<CodebaseProcessor> _logger;
         private readonly ContxtrConfiguration _configuration;
+        private IgnorePatterns _ignorePatterns;
 
         public CodebaseProcessor(
             IDocumentProcessor documentProcessor,
@@ -30,9 +26,11 @@ namespace Contxtr.Infrastructure.Processing
 
         public async Task<CodebaseStructure> ProcessCodebaseAsync(
             string rootPath,
+            IgnorePatterns ignorePatterns,
             CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Processing codebase at: {Path}", rootPath);
+            _ignorePatterns = ignorePatterns;
 
             var codebase = new CodebaseStructure
             {
@@ -112,14 +110,14 @@ namespace Contxtr.Infrastructure.Processing
         {
             var normalizedPath = path.Replace('\\', '/');
 
-            // Check configuration patterns
-            foreach (var pattern in _configuration.Ignore.Patterns.Where(p => p.IsActive))
+            // Check custom ignore patterns first
+            foreach (var pattern in _ignorePatterns.Patterns)
             {
                 if (pattern.IsRegex)
                 {
                     if (Regex.IsMatch(normalizedPath, pattern.Pattern))
                     {
-                        _logger.LogTrace("Path {Path} matched regex pattern {Pattern}", path, pattern.Pattern);
+                        _logger.LogTrace("Path {Path} matched custom regex pattern {Pattern}", path, pattern.Pattern);
                         return true;
                     }
                 }
@@ -127,9 +125,19 @@ namespace Contxtr.Infrastructure.Processing
                 {
                     if (normalizedPath.Contains(pattern.Pattern, StringComparison.OrdinalIgnoreCase))
                     {
-                        _logger.LogTrace("Path {Path} matched simple pattern {Pattern}", path, pattern.Pattern);
+                        _logger.LogTrace("Path {Path} matched custom simple pattern {Pattern}", path, pattern.Pattern);
                         return true;
                     }
+                }
+            }
+
+            // Check configuration patterns
+            foreach (var pattern in _configuration.Ignore.Patterns)
+            {
+                if (pattern.Pattern != null && normalizedPath.Contains(pattern.Pattern, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogTrace("Path {Path} matched config pattern {Pattern}", path, pattern.Pattern);
+                    return true;
                 }
             }
 

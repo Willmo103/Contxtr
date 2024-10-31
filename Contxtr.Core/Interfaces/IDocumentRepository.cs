@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using Contxtr.Core.Models;
+﻿using Contxtr.Core.Models;
 
 namespace Contxtr.Core.Interfaces
 {

@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Contxtr.Core.Interfaces;
+﻿using Contxtr.Core.Interfaces;
+using Contxtr.Infrastructure.Output;
 using Contxtr.Infrastructure.Persistence;
 using Contxtr.Infrastructure.Processing;
 using Contxtr.Infrastructure.Services;
@@ -18,9 +14,11 @@ namespace Contxtr.Infrastructure.DependencyInjection
             this IServiceCollection services,
             IConfiguration configuration)
         {
-            services.AddSingleton<HashingService>();
             services.AddScoped<IDocumentProcessor, DocumentProcessor>();
+            services.AddScoped<ICodebaseProcessor, CodebaseProcessor>();
             services.AddScoped<IDocumentRepository, FileSystemDocumentRepository>();
+            services.AddScoped<IDocumentWriter, MarkdownDocumentWriter>();
+            services.AddSingleton<HashingService>();
 
             return services;
         }

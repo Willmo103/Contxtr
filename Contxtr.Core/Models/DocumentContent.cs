@@ -1,9 +1,4 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-
-namespace Contxtr.Core.Models
+﻿namespace Contxtr.Core.Models
 {
 
     public class DocumentContent
